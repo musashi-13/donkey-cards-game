@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  --color: #bddcea76; 
+  background-color: rgb(106, 155, 172);
+  background-image: linear-gradient(0deg, transparent 24%, var(--color) 25%, var(--color) 26%, transparent 27%,transparent 74%, var(--color) 75%, var(--color) 76%, transparent 77%,transparent),
+      linear-gradient(90deg, transparent 24%, var(--color) 25%, var(--color) 26%, transparent 27%,transparent 74%, var(--color) 75%, var(--color) 76%, transparent 77%,transparent);
+  background-size: 100px 100px;
+  color: black;
+} 
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+.custom-cards{
+  --rotate: calc(var(--index) - var(--totalCards)/2);
+  rotate: calc(var(--rotate)*12deg);
+  transform-origin: bottom left;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(0px);
+  }
+  to {
+    transform: translateY(-32px);
+  }
+}
+
+.slide-in{
+  animation: slideIn 0.5s ease-in-out;
+}
+
+@keyframes popIn {
+  0% {
+    scale: 0;
+  }
+  50% {
+    scale: 1.1;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+.pop-in{
+  animation: popIn 0.5s ease-in-out;
+}
+
+.round-cards{
+  --rotate: calc(var(--index) - var(--totalCards)/2);
+  --degree: calc(360/var(--totalCards));
+  rotate: calc(var(--rotate)*var(--degree)*1deg);
+  transform-origin: center;
+  translate: -50% -50%;
+}
+
+.hand-cards{
+  --rotate: calc(var(--index) - var(--totalCards)/2);
+  rotate: calc(var(--rotate)*15deg - 30deg);
+  transform-origin: bottom left;
+  translate: 50% -50%;
+}
+
+.card-bg{
+  --u: 1px;
+  --c1: #bddcea76;
+  --c2: #000000;
+  --c3: #1e1e1e;
+  --gp: 50% / calc(var(--u) * 16.9) calc(var(--u) * 12.8);
+  background: conic-gradient(
+        from 122deg at 50% 85.15%,
+        var(--c2) 0 58deg,
+        var(--c3) 0 116deg,
+        #fff0 0 100%
+      )
+      var(--gp),
+    conic-gradient(from 122deg at 50% 72.5%, var(--c1) 0 116deg, #fff0 0 100%)
+      var(--gp),
+    conic-gradient(from 58deg at 82.85% 50%, var(--c3) 0 64deg, #fff0 0 100%)
+      var(--gp),
+    conic-gradient(
+        from 58deg at 66.87% 50%,
+        var(--c1) 0 64deg,
+        var(--c2) 0 130deg,
+        #fff0 0 100%
+      )
+      var(--gp),
+    conic-gradient(from 238deg at 17.15% 50%, var(--c2) 0 64deg, #fff0 0 100%)
+      var(--gp),
+    conic-gradient(
+        from 172deg at 33.13% 50%,
+        var(--c3) 0 66deg,
+        var(--c1) 0 130deg,
+        #fff0 0 100%
+      )
+      var(--gp),
+    linear-gradient(98deg, var(--c3) 0 15%, #fff0 calc(15% + 1px) 100%)
+      var(--gp),
+    linear-gradient(-98deg, var(--c2) 0 15%, #fff0 calc(15% + 1px) 100%)
+      var(--gp),
+    conic-gradient(
+        from -58deg at 50.25% 14.85%,
+        var(--c3) 0 58deg,
+        var(--c2) 0 116deg,
+        #fff0 0 100%
+      )
+      var(--gp),
+    conic-gradient(from -58deg at 50% 28.125%, var(--c1) 0 116deg, #fff0 0 100%)
+      var(--gp),
+    linear-gradient(90deg, var(--c2) 0 50%, var(--c3) 0 100%) var(--gp);
+}
