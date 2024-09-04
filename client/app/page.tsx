@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import Lobby from "./_components/lobby";
+import Rules from "./_components/rules";
 
 interface Deck {
   success: boolean,
@@ -79,6 +80,7 @@ export default function Home() {
     return (
         <main className="flex justify-center">
             <Lobby/>
+            <Rules/>
         </main>
     );
 }
