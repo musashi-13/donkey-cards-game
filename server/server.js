@@ -39,39 +39,61 @@ io.on('connection', (socket) => {
     //If someone joins the room by copying link and enters username before the room creator, then that user would be admin with this logic. Flaw? Or room creator retarded?
     // ^ Kaushik
     socket.on('joinRoom', async (roomName, userName) => {
-        console.log('joinRoom: ' + roomName + ' ' + userName);
-        socket.username = userName;
-
+        //Making sure we first check if roomName exists
         if (!rooms[roomName]) {
             console.log(`Room ${roomName} does not exist`);
             socket.emit('errorRoomNotFound');
             return
         }
 
+        console.log('joinRoom: ' + roomName + ' ' + userName);
+        socket.username = userName;
+
+        const room = rooms[roomName];
+
         //Check if the name already exists
-        const userNameTaken = rooms[roomName].players.some(player => player.userName === userName);
-        if (userNameTaken) {
+        if (room.players.some(player => player.userName === userName)) {
             console.log(`${userName} tried joining ${roomName} but username is taken`);
             socket.emit('errorNameTaken');
             return;
         }
-        //Check if room is full
-        if (rooms[roomName].players.length = 8) {
+        //Check if room is full (fixed >= 8 not only ==8)
+        if (room.players.length >= 8) {
             console.log(`Room ${roomName} is full`);
             socket.emit('errorRoomFull');
             return;
         }
-        position - rooms[roomName].players.length;
-        rooms[roomName].players.push({pos: position, id: socket.id, userName: userName, totalCards: 0, hand: {}});
+        //position of the new player calc, then pushing it 
+        const position = room.players.length;
+        room.players.push({ pos: position, id: socket.id, userName: userName, totalCards: 0, hand: {} });
         socket.join(roomName);
-        console.log(rooms[roomName].players);
-        io.to(roomName).emit('updatePlayers', rooms[roomName].players);
+
+        console.log(room.players);
+        //This is to notify others that new player has joined
+        io.to(roomName).emit('updatePlayers', room.players);
+        // Inform the new player who the current admin is(Karan you can ignore remove this if you feel it isnt necessary)
+        socket.emit('adminStatus', room.admin === socket.id);
+        console.log(`${userName} joined room ${roomName}`);
     });
 
     socket.on('startGame', async (roomName) => {
         
+        
         const room = rooms[roomName];
-        if (room && room.players.length > 0) {
+
+        //This is to make sure only admin can start the game
+        if (!room || socket.id !== room.admin) {
+            socket.emit('errorNotAdmin');
+            console.log(`User with socket ID ${socket.id} tried to start the game but is not the admin.`);
+            return;
+        }
+
+        //If there are no players in room or if only 1 player then game shouldn't start
+        if (!room || room.players.length <= 1) {
+            socket.emit('errorNoPlayers');  
+            console.log(`Not enough players in room ${roomName}.`);
+            return;
+        }
 
             // Create a new deck if not already created
             if (!room.deckId) {
@@ -90,11 +112,10 @@ io.on('connection', (socket) => {
             for (let i = 0; i < players.length; i++) {
                 const numCards = i < extraCards ? cardsPerPlayer + 1 : cardsPerPlayer;
                 const drawResponse = await axios.get(`https://deckofcardsapi.com/api/deck/${deckId}/draw/?count=${numCards}`);
-                //Add the cards to the player's hand
-                rooms[roomName].players[i].hand = drawResponse.data.cards;
-                const playerSocket = players[i].id;
-                //Send the cards to the client
-                playerSocket.emit('dealCards', drawResponse.data.cards);
+                // Add the cards to the player's hand
+                players[i].hand = drawResponse.data.cards;
+                // Send the cards to the client
+                io.to(players[i].id).emit('dealCards', drawResponse.data.cards);
             }
             console.log("game started for " + roomName);
 
@@ -107,7 +128,21 @@ io.on('connection', (socket) => {
                 io.to(roomName).emit('roundStart', startingPlayer, room.currentSuit);
             }
             
+        
+    });
+
+    //Kicking players logic
+    socket.on('kickPlayer', (roomName, playerId) => {
+        const room = rooms[roomName];
+        if (!room || socket.id !== room.admin) {
+            socket.emit('errorNotAdmin');
+            return;
         }
+
+        room.players = room.players.filter(player => player.id !== playerId);
+        io.to(playerId).emit('kicked');
+        io.to(roomName).emit('updatePlayers', room.players);
+        console.log(`Player ${playerId} kicked from room ${roomName}`);
     });
 
     socket.on('playCard', (roomName, player, card) => {
@@ -125,8 +160,45 @@ io.on('connection', (socket) => {
         }
     });
 
+    /*
     socket.on('disconnect', () => {
         console.log('user disconnected');
+    });
+    This was earlier thing
+    Now lot of things to handle
+    */
+    socket.on('disconnect', () => {
+        let roomName;
+        let isAdminLeaving = false;
+
+        // Find the room and remove the player
+        for (let [name, room] of Object.entries(rooms)) {
+            const index = room.players.findIndex(player => player.id === socket.id);
+            if (index !== -1) {
+                roomName = name;
+                room.players.splice(index, 1);
+                io.to(roomName).emit('updatePlayers', room.players);
+
+                // If the admin is leaving, transfer admin rights
+                if (room.admin === socket.id) {
+                    isAdminLeaving = true;
+                    if (room.players.length > 0) {
+                        room.admin = room.players[0].id;  // Transfer admin to the next player in the queue
+                        io.to(roomName).emit('adminTransferred', room.admin);
+                        console.log(`Admin left, new admin is ${room.players[0].userName}`);
+                    } else {
+                        // No players left, delete the room
+                        delete rooms[roomName];
+                        console.log(`Room ${roomName} deleted as no players left.`);
+                    }
+                }
+                break;
+            }
+        }
+
+        if (!isAdminLeaving) {
+            console.log('user disconnected');
+        }
     });
 });
 
